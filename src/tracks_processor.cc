@@ -83,7 +83,7 @@ void TracksProcessor::LoopRecTracks() {
     out_particle.CopyContent( in_track );
     out_particle.SetValue( field_out_mass, (float) mass );
     out_particle.SetValue( field_out_pid, (int) pid );
-    out_particle.SetValue( field_out_is_primary, (bool)mother_id == -1 );
+    out_particle.SetValue( field_out_is_primary, mother_id == -1 );
     auto rapidity = out_particle[field_out_rapidity];
     out_particle.SetValue( field_out_ycm, (float)rapidity - y_beam );
   }
