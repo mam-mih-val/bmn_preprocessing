@@ -11,6 +11,7 @@
 
 #include <AnalysisTree/DataHeader.hpp>
 #include <random>
+#include <TH2F.h>
 
 namespace AnalysisTree {
 
@@ -45,6 +46,8 @@ void TracksProcessor::Init() {
 
   man->AddBranch(&out_sim_particles_);
   man->AddBranch(&out_tracks_);
+
+  FHCalQA();
 }
 
 void TracksProcessor::Exec() {
@@ -110,5 +113,15 @@ void TracksProcessor::LoopSimParticles() {
     auto Ekin = sqrt(p*p + mass*mass) - mass;
     out_particle.SetValue(field_out_Ekin, (float) Ekin);
   }
+}
+void TracksProcessor::FHCalQA() {
+  auto man = TaskManager::GetInstance();
+  auto data_header = man->GetDataHeader();
+  auto module_pos = data_header->GetModulePositions( 0 );
+  auto h2_module_positions_ = new TH2F("fhcal_module_positions", ";x (cm);y (cm)", 500, -100, 100, 500, -100, 100);
+  for( auto module : module_pos ){
+    h2_module_positions_->Fill(module.GetX(), module.GetY(), module.GetId() );
+  }
+  h2_module_positions_->Write();
 }
 } // namespace AnalysisTree

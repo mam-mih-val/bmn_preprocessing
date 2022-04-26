@@ -31,6 +31,7 @@ public:
 protected:
   void LoopRecTracks();
   void LoopSimParticles();
+  void FHCalQA();
 
 private:
   bool is_mc_ = true;
