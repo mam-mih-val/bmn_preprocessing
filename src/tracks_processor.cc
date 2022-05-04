@@ -102,7 +102,7 @@ void TracksProcessor::LoopSimParticles() {
 
   auto y_beam = data_header_->GetBeamRapidity();
 
-  for (size_t i=0; i<in_tracks_.size(); ++i) {
+  for (size_t i=0; i<in_sim_particles_.size(); ++i) {
     auto in_particle = in_sim_particles_[i];
     auto out_particle = out_sim_particles_.NewChannel();
     out_particle.CopyContent(in_particle);
@@ -119,9 +119,23 @@ void TracksProcessor::FHCalQA() {
   auto data_header = man->GetDataHeader();
   auto module_pos = data_header->GetModulePositions( 0 );
   auto h2_module_positions_ = new TH2F("fhcal_module_positions", ";x (cm);y (cm)", 500, -100, 100, 500, -100, 100);
-  for( auto module : module_pos ){
+  for( int idx = 0; idx < 54; idx++ ){
+    auto module = module_pos.Channel(idx);
     h2_module_positions_->Fill(module.GetX(), module.GetY(), module.GetId() );
   }
   h2_module_positions_->Write();
+  auto h2_left_module_positions_ = new TH2F("h2_left_module_positions", ";x (cm);y (cm)", 500, -20, 20, 500, -100, 100);
+  for( int idx = 54; idx < 64; idx++ ){
+    auto module = module_pos.Channel(idx);
+    h2_left_module_positions_->Fill(module.GetX(), module.GetY(), module.GetId() );
+  }
+  h2_left_module_positions_->Write();
+
+  auto h2_right_module_positions_ = new TH2F("h2_right_module_positions", ";x (cm);y (cm)", 500, -20, 20, 500, -100, 100);
+  for( int idx = 64; idx < 74; idx++ ){
+    auto module = module_pos.Channel(idx);
+    h2_right_module_positions_->Fill(module.GetX(), module.GetY(), module.GetId() );
+  }
+  h2_right_module_positions_->Write();
 }
 } // namespace AnalysisTree
