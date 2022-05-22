@@ -124,18 +124,11 @@ void TracksProcessor::FHCalQA() {
     h2_module_positions_->Fill(module.GetX(), module.GetY(), module.GetId() );
   }
   h2_module_positions_->Write();
-  auto h2_left_module_positions_ = new TH2F("h2_left_module_positions", ";x (cm);y (cm)", 500, -20, 20, 500, -100, 100);
-  for( int idx = 54; idx < 64; idx++ ){
+  auto h2_left_module_positions_ = new TH2F("scwall_module_positions", ";x (cm);y (cm)", 500, -100, 100, 500, -100, 100);
+  for( int idx = 54; idx < 54+174; idx++ ){
     auto module = module_pos.Channel(idx);
     h2_left_module_positions_->Fill(module.GetX(), module.GetY(), module.GetId() );
   }
   h2_left_module_positions_->Write();
-
-  auto h2_right_module_positions_ = new TH2F("h2_right_module_positions", ";x (cm);y (cm)", 500, -20, 20, 500, -100, 100);
-  for( int idx = 64; idx < 74; idx++ ){
-    auto module = module_pos.Channel(idx);
-    h2_right_module_positions_->Fill(module.GetX(), module.GetY(), module.GetId() );
-  }
-  h2_right_module_positions_->Write();
 }
 } // namespace AnalysisTree
