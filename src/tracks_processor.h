@@ -31,6 +31,7 @@ public:
 protected:
   void LoopRecTracks();
   void LoopSimParticles();
+  void FillEventHeader();
   void FHCalQA();
 
 private:
@@ -38,9 +39,14 @@ private:
 
   Branch in_tracks_;
   Branch in_sim_particles_;
+  Branch in_event_header_;
 
   Branch out_tracks_;
   Branch out_sim_particles_;
+  Branch out_event_header_;
+
+  std::vector<float> centrality_percentage_{0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100 };
+  std::vector<int> multiplicity_edges_{ 249, 155, 129, 108, 90, 74, 60, 49, 39, 24, 14, 7, 2, 1, 0 };
 
   Matching* sim_particles_2_global_tracks_;
 };

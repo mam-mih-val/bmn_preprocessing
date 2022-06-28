@@ -21,15 +21,24 @@ void TracksProcessor::Init() {
 
   AddInputBranch("SimParticles");
   AddInputBranch("GlobalTracks");
+  AddInputBranch("RecEventHeader");
+
 //  AddInputBranch("SimParticles2GlobalTracks");
   in_sim_particles_ = chain->GetBranch("SimParticles");
   in_sim_particles_.Freeze();
   in_tracks_ = chain->GetBranch("GlobalTracks");
   in_tracks_.Freeze();
+  in_event_header_ = chain->GetBranch("RecEventHeader");
+  in_event_header_.Freeze();
   sim_particles_2_global_tracks_ = chain->GetMatching( "SimParticles", "GlobalTracks" );
 
+  auto out_event_header_conf = BranchConfig("RecEventHeaderExt", DetType::kEventHeader);
+  out_event_header_conf.AddField<float>("centrality", "(%) Based on multiplicity");
+  out_event_header_ = Branch(out_event_header_conf);
+  out_event_header_.SetMutable();
+
   auto in_sim_particles_conf = chain->GetConfiguration()->GetBranchConfig("SimParticles");
-  auto out_sim_particles_conf =in_sim_particles_conf.Clone("SimParticlesExt", DetType::kParticle);
+  auto out_sim_particles_conf = in_sim_particles_conf.Clone("SimParticlesExt", DetType::kParticle);
   out_sim_particles_conf.AddField<float>("Ekin", "kinetic energy");
   out_sim_particles_conf.AddField<float>("y_cm", "center-of-mass rapidity");
 
@@ -46,12 +55,14 @@ void TracksProcessor::Init() {
 
   man->AddBranch(&out_sim_particles_);
   man->AddBranch(&out_tracks_);
+  man->AddBranch(&out_event_header_);
 
   FHCalQA();
 }
 
 void TracksProcessor::Exec() {
   using AnalysisTree::Particle;
+  this->FillEventHeader();
   this->LoopRecTracks();
   if (is_mc_) {
     this->LoopSimParticles();
@@ -124,11 +135,27 @@ void TracksProcessor::FHCalQA() {
     h2_module_positions_->Fill(module.GetX(), module.GetY(), module.GetId() );
   }
   h2_module_positions_->Write();
-  auto h2_left_module_positions_ = new TH2F("scwall_module_positions", ";x (cm);y (cm)", 500, -100, 100, 500, -100, 100);
+  auto h2_left_module_positions_ = new TH2F("scwall_module_positions", ";x (cm);y (cm)", 500, -150, 150, 500, -100, 100);
   for( int idx = 54; idx < 54+174; idx++ ){
     auto module = module_pos.Channel(idx);
     h2_left_module_positions_->Fill(module.GetX(), module.GetY(), module.GetId() );
   }
   h2_left_module_positions_->Write();
+}
+
+void TracksProcessor::FillEventHeader() {
+  auto field_in_M = in_event_header_.GetField("M");
+  auto field_out_centrality = out_event_header_.GetField("centrality");
+  auto multiplicity = in_event_header_.GetDataRaw<EventHeader*>()->GetField<int>(field_in_M.GetFieldId());
+  auto centrality = -1.0f;
+  int idx = 0;
+  float bin_edge = multiplicity_edges_[idx];
+  while( multiplicity < bin_edge &&
+         idx < multiplicity_edges_.size()-1 ){
+    idx++;
+    bin_edge = multiplicity_edges_[idx];
+  }
+  centrality = (centrality_percentage_[idx-1] + centrality_percentage_[idx])/2.0f;
+  out_event_header_.GetDataRaw<EventHeader*>()->SetField(centrality, field_out_centrality.GetFieldId());
 }
 } // namespace AnalysisTree
