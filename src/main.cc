@@ -20,6 +20,7 @@ int main(int argv, char **argc){
   }
   std::vector<std::string> in_file_lists;
   std::vector<std::string> in_tree_names{ std::vector{std::string("rTree")} };
+  std::string efficiency_file{"output.root"};
   std::string output_file{"output.root"};
   std::string output_tree{"eTree"};
   int n_events{-1};
@@ -31,6 +32,7 @@ int main(int argv, char **argc){
       ("tree-name,t", po::value<std::vector<std::string>>(&in_tree_names),"Input file list")
       ("output-tree-name", po::value<std::string>(&output_tree),"Output tree name")
       ("output,o", po::value<std::string>(&output_file),"Name of output file")
+      ("efficiency,e", po::value<std::string>(&efficiency_file),"Name of efficiency file")
       ("events,N", po::value<int>(&n_events),"Number of analysing events");
   po::variables_map vm;
   po::parsed_options parsed = po::command_line_parser(argv, argc).options(options).run();
@@ -43,6 +45,7 @@ int main(int argv, char **argc){
 
   auto* man = AnalysisTree::TaskManager::GetInstance();
   auto* task = new AnalysisTree::TracksProcessor();
+  task->SetEfficiencyFileName(efficiency_file);
   man->AddTask(task);
   man->SetOutputName(output_file, output_tree);
   man->Init(in_file_lists, in_tree_names);

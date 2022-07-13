@@ -7,6 +7,7 @@
 
 #include <TFile.h>
 #include <TTree.h>
+#include <TH2F.h>
 
 #include <AnalysisTree/AnalysisTask.hpp>
 
@@ -27,12 +28,17 @@ public:
   void Init() override;
   void Exec() override;
   void Finish() override {}
+  void SetEfficiencyFileName(const std::string &efficiency_file_name) {
+    efficiency_file_name_ = efficiency_file_name;
+  }
 
 protected:
   void LoopRecTracks();
   void LoopSimParticles();
   void FillEventHeader();
   void FHCalQA();
+  void ReadEfficiency();
+  double FindEfficiency(int pid, double pT, double y);
 
 private:
   bool is_mc_ = true;
@@ -47,6 +53,11 @@ private:
 
   std::vector<float> centrality_percentage_{0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100 };
   std::vector<int> multiplicity_edges_{ 249, 155, 129, 108, 90, 74, 60, 49, 39, 24, 14, 7, 2, 1, 0 };
+
+  std::string efficiency_file_name_;
+  TFile* efficiency_file_;
+  TH2F* efficiency_2212_;
+  TH2F* efficiency_m211_;
 
   Matching* sim_particles_2_global_tracks_;
 };
