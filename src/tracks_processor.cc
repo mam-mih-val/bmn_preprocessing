@@ -184,14 +184,15 @@ void TracksProcessor::ReadEfficiency() {
     return;
   efficiency_file_ = TFile::Open(efficiency_file_name_.c_str());
   if( !efficiency_file_ ) {
-    std::cout << "No such file: " << efficiency_file_ << std::endl;
+    std::cout << "No such file: " << efficiency_file_name_ << std::endl;
     return;
   }
   efficiency_file_->GetObject("efficiency_2212", efficiency_2212_);
   if( !efficiency_2212_ )
-    std::cout << "File " << efficiency_file_ << " does not contain histogram for proton efficiency" << std::endl;
+    std::cout << "File " << efficiency_file_name_ << " does not contain histogram for proton efficiency" << std::endl;
   efficiency_file_->GetObject("efficiency_-211", efficiency_m211_);
-    std::cout << "File " << efficiency_file_ << " does not contain histogram for negative proton efficiency" << std::endl;
+  if( !efficiency_m211_ )
+    std::cout << "File " << efficiency_file_name_ << " does not contain histogram for negative pion efficiency" << std::endl;
 }
 double TracksProcessor::FindEfficiency(int pid, double pT, double y) {
   TH2F* hist{nullptr};
