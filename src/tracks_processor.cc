@@ -47,6 +47,7 @@ void TracksProcessor::Init() {
 
   auto in_tracks_conf = chain->GetConfiguration()->GetBranchConfig("GlobalTracks");
   auto out_tracks_conf = in_tracks_conf.Clone("GlobalTracksExt", DetType::kParticle);
+  out_tracks_conf.AddField<bool>("has_tof_hit", "has either TOF400 or TOF700 hit");
   out_tracks_conf.AddField<bool>("is_primary", "is primary particle");
   out_tracks_conf.AddField<float>("y_cm", "center-of-mass rapidity");
 
@@ -73,6 +74,9 @@ void TracksProcessor::LoopRecTracks() {
   using AnalysisTree::Particle;
   out_tracks_.ClearChannels();
   auto field_out_ycm = out_tracks_.GetField("y_cm");
+  auto field_out_beta400 = out_tracks_.GetField("beta400");
+  auto field_out_beta700 = out_tracks_.GetField("beta700");
+  auto field_out_has_tof_hit = out_tracks_.GetField("has_tof_hit");
   auto field_out_is_primary = out_tracks_.GetField("is_primary");
   auto field_out_pid = out_tracks_.GetField("pid");
   auto field_out_mass = out_tracks_.GetField("mass");
@@ -100,6 +104,10 @@ void TracksProcessor::LoopRecTracks() {
     out_particle.SetValue( field_out_is_primary, mother_id == -1 );
     auto rapidity = out_particle[field_out_rapidity];
     out_particle.SetValue( field_out_ycm, (float)rapidity - y_beam );
+    auto beta400 = out_particle[field_out_beta400];
+    auto beta700 = out_particle[field_out_beta700];
+    bool has_tof_hit = beta400 > -990. || beta700 > -990.;
+    out_particle.SetValue( field_out_has_tof_hit, has_tof_hit );
   }
 }
 void TracksProcessor::LoopSimParticles() {
