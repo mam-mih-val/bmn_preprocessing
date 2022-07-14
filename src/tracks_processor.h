@@ -38,7 +38,7 @@ protected:
   void FillEventHeader();
   void FHCalQA();
   void ReadEfficiency();
-  double FindEfficiency(int pid, double pT, double y);
+  std::tuple<double, double> FindEfficiency(int pid, double pT, double y);
 
 private:
   bool is_mc_ = true;
@@ -57,7 +57,9 @@ private:
   std::string efficiency_file_name_;
   TFile* efficiency_file_;
   TH2F* efficiency_2212_;
+  TH2F* efficiency_2212_tof_;
   TH2F* efficiency_m211_;
+  TH2F* efficiency_m211_tof_;
 
   Matching* sim_particles_2_global_tracks_;
 };

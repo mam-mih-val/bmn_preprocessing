@@ -51,7 +51,9 @@ void TracksProcessor::Init() {
   out_tracks_conf.AddField<bool>("is_primary", "is primary particle");
   out_tracks_conf.AddField<float>("y_cm", "center-of-mass rapidity");
   out_tracks_conf.AddField<float>("efficiency", "efficiency");
-  out_tracks_conf.AddField<float>("weight", "efficiency > 0.1 ? 1/efficiency : 0.0");
+  out_tracks_conf.AddField<float>("tof_efficiency", "efficiency in TOF acceptance");
+  out_tracks_conf.AddField<float>("weight", "efficiency > 0.01 ? 1/efficiency : 0.0");
+  out_tracks_conf.AddField<float>("tof_weight", "tof_efficiency > 0.01 ? 1/efficiency : 0.0");
 
   out_tracks_ = Branch(out_tracks_conf);
   out_tracks_.SetMutable();
@@ -80,6 +82,8 @@ void TracksProcessor::LoopRecTracks() {
   auto field_out_ycm = out_tracks_.GetField("y_cm");
   auto field_out_efficiency = out_tracks_.GetField("efficiency");
   auto field_out_weight = out_tracks_.GetField("weight");
+  auto field_out_tof_efficiency = out_tracks_.GetField("tof_efficiency");
+  auto field_out_tof_weight = out_tracks_.GetField("tof_weight");
   auto field_out_beta400 = out_tracks_.GetField("beta400");
   auto field_out_beta700 = out_tracks_.GetField("beta700");
   auto field_out_has_tof_hit = out_tracks_.GetField("has_tof_hit");
@@ -116,10 +120,15 @@ void TracksProcessor::LoopRecTracks() {
     out_particle.SetValue( field_out_has_tof_hit, has_tof_hit );
     auto pT = out_particle[field_out_pT];
     auto ycm = rapidity - y_beam;
-    float efficiency = FindEfficiency( pid, pT, ycm );
-    float weight = efficiency > 0.1 ? 1.0/efficiency : 0.0;
-    out_particle.SetValue( field_out_efficiency, efficiency );
-    out_particle.SetValue( field_out_weight, weight );
+    auto [efficiency, tof_efficiency] = FindEfficiency( pid, pT, ycm );
+    double weight = efficiency > 0.01 ? 1.0/efficiency : 0.0;
+    double tof_weight = tof_efficiency > 0.01 ? 1.0/tof_efficiency : 0.0;
+
+    out_particle.SetValue( field_out_efficiency, float(efficiency) );
+    out_particle.SetValue( field_out_weight, float(weight) );
+
+    out_particle.SetValue( field_out_tof_efficiency, float(tof_efficiency) );
+    out_particle.SetValue( field_out_tof_weight, float(tof_weight) );
 
   }
 }
@@ -184,27 +193,47 @@ void TracksProcessor::ReadEfficiency() {
     return;
   efficiency_file_ = TFile::Open(efficiency_file_name_.c_str());
   if( !efficiency_file_ ) {
-    std::cout << "No such file: " << efficiency_file_name_ << std::endl;
+    std::cerr << "No such file: " << efficiency_file_name_ << std::endl;
     return;
   }
+  // Efficiency of tracking
   efficiency_file_->GetObject("efficiency_2212", efficiency_2212_);
   if( !efficiency_2212_ )
-    std::cout << "File " << efficiency_file_name_ << " does not contain histogram for proton efficiency" << std::endl;
+    std::cerr << "File " << efficiency_file_name_ << " does not contain histogram for proton efficiency" << std::endl;
   efficiency_file_->GetObject("efficiency_-211", efficiency_m211_);
   if( !efficiency_m211_ )
-    std::cout << "File " << efficiency_file_name_ << " does not contain histogram for negative pion efficiency" << std::endl;
+    std::cerr << "File " << efficiency_file_name_ << " does not contain histogram for negative pion efficiency" << std::endl;
+  // Efficiency of tracking in TOF-acceptance
+  efficiency_file_->GetObject("efficiency_2212_tof", efficiency_2212_tof_);
+  if( !efficiency_2212_tof_ )
+    std::cerr << "File " << efficiency_file_name_ << " does not contain histogram for proton TOF efficiency" << std::endl;
+  efficiency_file_->GetObject("efficiency_-211_tof", efficiency_m211_tof_);
+  if( !efficiency_m211_tof_ )
+    std::cerr << "File " << efficiency_file_name_ << " does not contain histogram for negative pion TOF efficiency" << std::endl;
 }
-double TracksProcessor::FindEfficiency(int pid, double pT, double y) {
+std::tuple<double, double> TracksProcessor::FindEfficiency(int pid, double pT, double y) {
   TH2F* hist{nullptr};
-  if( pid == 2212 )
+  TH2F* hist_tof{nullptr};
+  if( pid == 2212 ) {
     hist = efficiency_2212_;
-  if( pid == -211 )
+    hist_tof = efficiency_2212_tof_;
+  }
+  if( pid == -211 ) {
     hist = efficiency_m211_;
-  if( !hist )
-    return 1.0;
-  auto y_bin = hist->GetXaxis()->FindBin(y);
-  auto pT_bin = hist->GetYaxis()->FindBin(pT);
-  auto eff = hist->GetBinContent( y_bin, pT_bin );
-  return eff;
+    hist_tof = efficiency_m211_tof_;
+  }
+  double eff = 1.0;
+  double eff_tof = 1.0;
+  if( hist ) {
+    auto y_bin = hist->GetXaxis()->FindBin(y);
+    auto pT_bin = hist->GetYaxis()->FindBin(pT);
+    eff = hist->GetBinContent(y_bin, pT_bin);
+  }
+  if( hist_tof ) {
+    auto y_bin = hist_tof->GetXaxis()->FindBin(y);
+    auto pT_bin = hist_tof->GetYaxis()->FindBin(pT);
+    eff_tof = hist_tof->GetBinContent(y_bin, pT_bin);
+  }
+  return {eff, eff_tof};
 }
 } // namespace AnalysisTree
