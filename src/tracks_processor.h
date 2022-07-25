@@ -39,6 +39,7 @@ protected:
   void FHCalQA();
   void ReadEfficiency();
   std::tuple<double, double> FindEfficiency(int pid, double pT, double y);
+  std::tuple<double, double> ProjectToFHCalPlane(double x, double y, double z, double Tx, double Ty);
 
 private:
   bool is_mc_ = true;

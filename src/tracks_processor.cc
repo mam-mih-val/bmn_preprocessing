@@ -54,6 +54,8 @@ void TracksProcessor::Init() {
   out_tracks_conf.AddField<float>("tof_efficiency", "efficiency in TOF acceptance");
   out_tracks_conf.AddField<float>("weight", "efficiency > 0.01 ? 1/efficiency : 0.0");
   out_tracks_conf.AddField<float>("tof_weight", "tof_efficiency > 0.01 ? 1/efficiency : 0.0");
+  out_tracks_conf.AddField<float>("x_fhcal", "Liner extrapolation of track coordinates to FHCal plane");
+  out_tracks_conf.AddField<float>("y_fhcal", "Liner extrapolation of track coordinates to FHCal plane");
 
   out_tracks_ = Branch(out_tracks_conf);
   out_tracks_.SetMutable();
@@ -91,6 +93,15 @@ void TracksProcessor::LoopRecTracks() {
   auto field_out_pid = out_tracks_.GetField("pid");
   auto field_out_mass = out_tracks_.GetField("mass");
   auto field_out_rapidity = out_tracks_.GetField("rapidity");
+
+  auto field_x_fhcal = out_tracks_.GetField("x_fhcal");
+  auto field_y_fhcal = out_tracks_.GetField("y_fhcal");
+
+  auto field_x_last = out_tracks_.GetField("x_last");
+  auto field_y_last = out_tracks_.GetField("y_last");
+  auto field_z_last = out_tracks_.GetField("z_last");
+  auto field_tx_last = out_tracks_.GetField("tx_last");
+  auto field_ty_last = out_tracks_.GetField("ty_last");
 
   auto field_sim_pid = in_sim_particles_.GetField("pid");
   auto field_sim_mass = in_sim_particles_.GetField("mass");
@@ -130,6 +141,14 @@ void TracksProcessor::LoopRecTracks() {
     out_particle.SetValue( field_out_tof_efficiency, float(tof_efficiency) );
     out_particle.SetValue( field_out_tof_weight, float(tof_weight) );
 
+    auto x = out_particle[field_x_last];
+    auto y = out_particle[field_y_last];
+    auto z = out_particle[field_z_last];
+    auto tx = out_particle[field_tx_last];
+    auto ty = out_particle[field_ty_last];
+    auto [x_fhcal, y_fhcal] = ProjectToFHCalPlane( x, y, z, tx, ty );
+    out_particle.SetValue(field_x_fhcal, float(x_fhcal));
+    out_particle.SetValue(field_y_fhcal, float(y_fhcal));
   }
 }
 void TracksProcessor::LoopSimParticles() {
@@ -235,5 +254,15 @@ std::tuple<double, double> TracksProcessor::FindEfficiency(int pid, double pT, d
     eff_tof = hist_tof->GetBinContent(y_bin, pT_bin);
   }
   return {eff, eff_tof};
+}
+std::tuple<double, double>
+TracksProcessor::ProjectToFHCalPlane(double x, double y, double z,
+                                     double Tx, double Ty) {
+  auto dz = 900. - z;
+  auto dx = Tx*dz;
+  auto dy = Ty*dz;
+  auto x_fhcal = x + dx;
+  auto y_fhcal = y + dy;
+  return {x_fhcal, y_fhcal};
 }
 } // namespace AnalysisTree
