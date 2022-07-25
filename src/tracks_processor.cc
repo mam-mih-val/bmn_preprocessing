@@ -54,8 +54,9 @@ void TracksProcessor::Init() {
   out_tracks_conf.AddField<float>("tof_efficiency", "efficiency in TOF acceptance");
   out_tracks_conf.AddField<float>("weight", "efficiency > 0.01 ? 1/efficiency : 0.0");
   out_tracks_conf.AddField<float>("tof_weight", "tof_efficiency > 0.01 ? 1/efficiency : 0.0");
-  out_tracks_conf.AddField<float>("x_fhcal", "Liner extrapolation of track coordinates to FHCal plane");
-  out_tracks_conf.AddField<float>("y_fhcal", "Liner extrapolation of track coordinates to FHCal plane");
+  out_tracks_conf.AddField<float>("x_fhcal", "Linear extrapolation of track coordinates to FHCal plane");
+  out_tracks_conf.AddField<float>("y_fhcal", "Linear extrapolation of track coordinates to FHCal plane");
+  out_tracks_conf.AddField<bool>("in_fhcal", "If the particle is in FHCal acceptance");
 
   out_tracks_ = Branch(out_tracks_conf);
   out_tracks_.SetMutable();
@@ -96,6 +97,7 @@ void TracksProcessor::LoopRecTracks() {
 
   auto field_x_fhcal = out_tracks_.GetField("x_fhcal");
   auto field_y_fhcal = out_tracks_.GetField("y_fhcal");
+  auto field_in_fhcal = out_tracks_.GetField("in_fhcal");
 
   auto field_x_last = out_tracks_.GetField("x_last");
   auto field_y_last = out_tracks_.GetField("y_last");
@@ -149,6 +151,14 @@ void TracksProcessor::LoopRecTracks() {
     auto [x_fhcal, y_fhcal] = ProjectToFHCalPlane( x, y, z, tx, ty );
     out_particle.SetValue(field_x_fhcal, float(x_fhcal));
     out_particle.SetValue(field_y_fhcal, float(y_fhcal));
+    auto in_fhcal = true;
+    if( x_fhcal < -30 )
+      in_fhcal = false;
+    if( x_fhcal > 140 )
+      in_fhcal = false;
+    if( fabs(y_fhcal) > 60  )
+      in_fhcal = false;
+    out_particle.SetValue(field_in_fhcal, bool(in_fhcal));
   }
 }
 void TracksProcessor::LoopSimParticles() {
