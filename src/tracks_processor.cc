@@ -15,6 +15,21 @@
 
 namespace AnalysisTree {
 
+struct TracksProcessor::scwall_fields{
+  int field_in_signal;
+  int field_out_x;
+  int field_out_y;
+  int field_out_z;
+  int field_out_signal;
+  int field_out_random_sub;
+  ModuleDetector* in_fhcal_modules_;
+  HitDetector* out_scwall_hits_;
+  BranchConfig out_scwall_hits_config_;
+};
+
+TracksProcessor::TracksProcessor() = default;
+TracksProcessor::~TracksProcessor() = default;
+
 void TracksProcessor::Init() {
   auto man = TaskManager::GetInstance();
   auto chain = man->GetChain();
@@ -30,6 +45,8 @@ void TracksProcessor::Init() {
   in_tracks_.Freeze();
   in_event_header_ = chain->GetBranch("RecEventHeader");
   in_event_header_.Freeze();
+  in_fhcal_modules_ = chain->GetBranch("FHCalModules");
+  in_fhcal_modules_.Freeze();
   sim_particles_2_global_tracks_ = chain->GetMatching( "SimParticles", "GlobalTracks" );
 
   auto out_event_header_conf = BranchConfig("RecEventHeaderExt", DetType::kEventHeader);
@@ -61,12 +78,34 @@ void TracksProcessor::Init() {
   out_tracks_ = Branch(out_tracks_conf);
   out_tracks_.SetMutable();
 
+  auto out_scwall_hits_conf = BranchConfig( "ScWallHitsExt", DetType::kHit );
+  out_scwall_hits_conf.AddField<int>("random_subevent");
+  out_scwall_hits_ = Branch(out_scwall_hits_conf);
+  out_scwall_hits_.SetMutable();
+
   man->AddBranch(&out_sim_particles_);
   man->AddBranch(&out_tracks_);
   man->AddBranch(&out_event_header_);
+  man->AddBranch(&out_scwall_hits_);
 
+  module_positions_ = data_header_->GetModulePositions(0);
+
+  InitFields();
   FHCalQA();
   ReadEfficiency();
+}
+
+void TracksProcessor::InitFields(){
+  scwall_fields_ = std::make_unique<scwall_fields>();
+  scwall_fields_->field_in_signal = in_fhcal_modules_.GetField("signal").GetFieldId();
+  scwall_fields_->field_out_x = out_scwall_hits_.GetField("x").GetFieldId();
+  scwall_fields_->field_out_y = out_scwall_hits_.GetField("y").GetFieldId();
+  scwall_fields_->field_out_z = out_scwall_hits_.GetField("z").GetFieldId();
+  scwall_fields_->field_out_signal = out_scwall_hits_.GetField("signal").GetFieldId();
+  scwall_fields_->field_out_random_sub = out_scwall_hits_.GetField("random_subevent").GetFieldId();
+  scwall_fields_->in_fhcal_modules_ = in_fhcal_modules_.GetDataRaw<ModuleDetector*>();
+  scwall_fields_->out_scwall_hits_ = out_scwall_hits_.GetDataRaw<HitDetector*>();
+  scwall_fields_->out_scwall_hits_config_ = out_scwall_hits_.GetConfig();
 }
 
 void TracksProcessor::Exec() {
@@ -76,6 +115,7 @@ void TracksProcessor::Exec() {
   if (is_mc_) {
     this->LoopSimParticles();
   }
+  this->LoopScWallModules();
 }
 
 void TracksProcessor::LoopRecTracks() {
@@ -274,5 +314,35 @@ TracksProcessor::ProjectToFHCalPlane(double x, double y, double z,
   auto x_fhcal = x + dx;
   auto y_fhcal = y + dy;
   return {x_fhcal, y_fhcal};
+}
+void TracksProcessor::LoopScWallModules() {
+  std::random_device rd;  //Will be used to obtain a seed for the random number engine
+  std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+  std::uniform_int_distribution<> distrib(1, 2);
+
+//  auto raw_in_fhcal_modules = in_fhcal_modules_.GetDataRaw<ModuleDetector*>();
+//  auto raw_out_scwall_hits = out_scwall_hits_.GetDataRaw<HitDetector*>();
+//  auto raw_out_scwall_hits_config = out_scwall_hits_.GetConfig();
+
+  auto raw_in_fhcal_modules = scwall_fields_->in_fhcal_modules_;
+  auto raw_out_scwall_hits = scwall_fields_->out_scwall_hits_;
+  auto raw_out_scwall_hits_config = scwall_fields_->out_scwall_hits_config_;
+  for( int idx = 54; idx < 54+174; idx++ ){
+    const auto& in_module = raw_in_fhcal_modules->GetChannel(idx);
+    auto signal = in_module.GetField<float>( scwall_fields_->field_in_signal );
+    if( fabs(signal) < std::numeric_limits<float>::min() )
+      continue;
+    const auto& module_pos = module_positions_.GetChannel(idx);
+    auto x = module_pos.GetX();
+    auto y = module_pos.GetY();
+    auto z = module_pos.GetZ();
+    auto rs = distrib(gen);
+    auto& out_hit = raw_out_scwall_hits->AddChannel(raw_out_scwall_hits_config);
+    out_hit.SetField<float>(x, scwall_fields_->field_out_x);
+    out_hit.SetField<float>(y, scwall_fields_->field_out_y);
+    out_hit.SetField<float>(z, scwall_fields_->field_out_z);
+    out_hit.SetField<float>(signal, scwall_fields_->field_out_signal);
+    out_hit.SetField<int>(rs, scwall_fields_->field_out_random_sub);
+  }
 }
 } // namespace AnalysisTree
