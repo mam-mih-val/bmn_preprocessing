@@ -71,7 +71,9 @@ private:
   ModulePositions module_positions_;
 
   struct scwall_fields;
+  struct fhcal_fields;
   std::unique_ptr<scwall_fields> scwall_fields_;
+  std::unique_ptr<fhcal_fields> fhcal_fields_;
 };
 
 }
