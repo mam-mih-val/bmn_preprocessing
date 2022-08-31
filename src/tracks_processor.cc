@@ -197,8 +197,8 @@ void TracksProcessor::LoopRecTracks() {
     auto pT = out_particle[field_out_pT];
     auto ycm = rapidity - y_beam;
     auto [efficiency, tof_efficiency] = FindEfficiency( pid, pT, ycm );
-    double weight = efficiency > 0.01 ? 1.0/efficiency : 0.0;
-    double tof_weight = tof_efficiency > 0.01 ? 1.0/tof_efficiency : 0.0;
+    double weight = efficiency > 0.001 ? 1.0/efficiency : 0.0;
+    double tof_weight = tof_efficiency > 0.001 ? 1.0/tof_efficiency : 0.0;
 
     out_particle.SetValue( field_out_efficiency, float(efficiency) );
     out_particle.SetValue( field_out_weight, float(weight) );
