@@ -84,6 +84,9 @@ void TracksProcessor::Init() {
   out_tracks_conf.AddField<float>("tof_weight", "tof_efficiency > 0.01 ? 1/efficiency : 0.0");
   out_tracks_conf.AddField<float>("x_fhcal", "Linear extrapolation of track coordinates to FHCal plane");
   out_tracks_conf.AddField<float>("y_fhcal", "Linear extrapolation of track coordinates to FHCal plane");
+  out_tracks_conf.AddField<float>("tru_phi", "True azimuthal angle");
+  out_tracks_conf.AddField<float>("tru_pT", "True transverse momentum");
+  out_tracks_conf.AddField<float>("tru_y_cm", "True center-of-mass rapidity");
   out_tracks_conf.AddField<bool>("in_fhcal", "If the particle is in FHCal acceptance");
 
   out_tracks_ = Branch(out_tracks_conf);
@@ -158,6 +161,10 @@ void TracksProcessor::LoopRecTracks() {
   auto field_out_mass = out_tracks_.GetField("mass");
   auto field_out_rapidity = out_tracks_.GetField("rapidity");
 
+  auto field_out_tru_phi = out_tracks_.GetField("tru_phi");
+  auto field_out_tru_pT = out_tracks_.GetField("tru_pT");
+  auto field_out_tru_ycm = out_tracks_.GetField("tru_y_cm");
+
   auto field_x_fhcal = out_tracks_.GetField("x_fhcal");
   auto field_y_fhcal = out_tracks_.GetField("y_fhcal");
   auto field_in_fhcal = out_tracks_.GetField("in_fhcal");
@@ -171,6 +178,10 @@ void TracksProcessor::LoopRecTracks() {
   auto field_sim_pid = in_sim_particles_.GetField("pid");
   auto field_sim_mass = in_sim_particles_.GetField("mass");
   auto field_sim_mother_id = in_sim_particles_.GetField("mother_id");
+
+  auto field_sim_phi = in_sim_particles_.GetField("phi");
+  auto field_sim_pT = in_sim_particles_.GetField("pT");
+  auto field_sim_y = in_sim_particles_.GetField("rapidity");
 
   auto y_beam = data_header_->GetBeamRapidity();
 
@@ -205,6 +216,14 @@ void TracksProcessor::LoopRecTracks() {
 
     out_particle.SetValue( field_out_tof_efficiency, float(tof_efficiency) );
     out_particle.SetValue( field_out_tof_weight, float(tof_weight) );
+
+    auto tru_phi = sim_particle[field_sim_phi];
+    auto tru_pT = sim_particle[field_sim_pT];
+    auto tru_ycm = sim_particle[field_sim_y] - y_beam;
+
+    out_particle.SetValue( field_out_tru_phi, float(tru_phi) );
+    out_particle.SetValue( field_out_tru_pT, float(tru_pT) );
+    out_particle.SetValue( field_out_tru_ycm, float(tru_ycm) );
 
     auto x = out_particle[field_x_last];
     auto y = out_particle[field_y_last];
