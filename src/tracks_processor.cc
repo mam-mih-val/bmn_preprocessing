@@ -78,6 +78,7 @@ void TracksProcessor::Init() {
   out_tracks_conf.AddField<bool>("has_tof_hit", "has either TOF400 or TOF700 hit");
   out_tracks_conf.AddField<bool>("is_primary", "is primary particle");
   out_tracks_conf.AddField<float>("y_cm", "center-of-mass rapidity");
+  out_tracks_conf.AddField<float>("chi2_over_ndf", "Self explanatory");
   out_tracks_conf.AddField<float>("efficiency", "efficiency");
   out_tracks_conf.AddField<float>("tof_efficiency", "efficiency in TOF acceptance");
   out_tracks_conf.AddField<float>("weight", "efficiency > 0.01 ? 1/efficiency : 0.0");
@@ -149,6 +150,9 @@ void TracksProcessor::LoopRecTracks() {
   out_tracks_.ClearChannels();
   auto field_out_pT = out_tracks_.GetField("pT");
   auto field_out_ycm = out_tracks_.GetField("y_cm");
+  auto field_out_chi2 = out_tracks_.GetField("chi2");
+  auto field_out_ndf = out_tracks_.GetField("ndf");
+  auto field_out_chi2_over_ndf = out_tracks_.GetField("chi2_over_ndf");
   auto field_out_efficiency = out_tracks_.GetField("efficiency");
   auto field_out_weight = out_tracks_.GetField("weight");
   auto field_out_tof_efficiency = out_tracks_.GetField("tof_efficiency");
@@ -224,6 +228,11 @@ void TracksProcessor::LoopRecTracks() {
     out_particle.SetValue( field_out_tru_phi, float(tru_phi) );
     out_particle.SetValue( field_out_tru_pT, float(tru_pT) );
     out_particle.SetValue( field_out_tru_ycm, float(tru_ycm) );
+
+    auto chi2 = out_particle[field_out_chi2];
+    auto ndf = out_particle[field_out_ndf];
+    auto chi2_ndf = chi2/ndf;
+    out_particle.SetValue( field_out_chi2_over_ndf, float(chi2_ndf) );
 
     auto x = out_particle[field_x_last];
     auto y = out_particle[field_y_last];
