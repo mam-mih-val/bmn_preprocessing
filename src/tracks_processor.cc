@@ -80,9 +80,13 @@ void TracksProcessor::Init() {
   out_tracks_conf.AddField<float>("y_cm", "center-of-mass rapidity");
   out_tracks_conf.AddField<float>("chi2_over_ndf", "Self explanatory");
   out_tracks_conf.AddField<float>("efficiency", "efficiency");
+  out_tracks_conf.AddField<float>("tru_efficiency", "efficiency based on true momenta");
   out_tracks_conf.AddField<float>("tof_efficiency", "efficiency in TOF acceptance");
+  out_tracks_conf.AddField<float>("tru_tof_efficiency", "efficiency in TOF acceptance based on true moments");
   out_tracks_conf.AddField<float>("weight", "efficiency > 0.01 ? 1/efficiency : 0.0");
+  out_tracks_conf.AddField<float>("tru_weight", "efficiency > 0.01 ? 1/efficiency : 0.0");
   out_tracks_conf.AddField<float>("tof_weight", "tof_efficiency > 0.01 ? 1/efficiency : 0.0");
+  out_tracks_conf.AddField<float>("tru_tof_weight", "tof_efficiency > 0.01 ? 1/efficiency : 0.0");
   out_tracks_conf.AddField<float>("x_fhcal", "Linear extrapolation of track coordinates to FHCal plane");
   out_tracks_conf.AddField<float>("y_fhcal", "Linear extrapolation of track coordinates to FHCal plane");
   out_tracks_conf.AddField<float>("tru_phi", "True azimuthal angle");
@@ -154,9 +158,13 @@ void TracksProcessor::LoopRecTracks() {
   auto field_out_ndf = out_tracks_.GetField("ndf");
   auto field_out_chi2_over_ndf = out_tracks_.GetField("chi2_over_ndf");
   auto field_out_efficiency = out_tracks_.GetField("efficiency");
+  auto field_out_tru_efficiency = out_tracks_.GetField("tru_efficiency");
   auto field_out_weight = out_tracks_.GetField("weight");
+  auto field_out_tru_weight = out_tracks_.GetField("tru_weight");
   auto field_out_tof_efficiency = out_tracks_.GetField("tof_efficiency");
+  auto field_out_tru_tof_efficiency = out_tracks_.GetField("tru_tof_efficiency");
   auto field_out_tof_weight = out_tracks_.GetField("tof_weight");
+  auto field_out_tru_tof_weight = out_tracks_.GetField("tru_tof_weight");
   auto field_out_beta400 = out_tracks_.GetField("beta400");
   auto field_out_beta700 = out_tracks_.GetField("beta700");
   auto field_out_has_tof_hit = out_tracks_.GetField("has_tof_hit");
@@ -224,6 +232,16 @@ void TracksProcessor::LoopRecTracks() {
     auto tru_phi = sim_particle[field_sim_phi];
     auto tru_pT = sim_particle[field_sim_pT];
     auto tru_ycm = sim_particle[field_sim_y] - y_beam;
+
+    auto [tru_efficiency, tru_tof_efficiency] = FindEfficiency( pid, tru_pT, tru_ycm );
+    double tru_weight = tru_efficiency > 1e-3 ? 1.0/tru_efficiency : 0.0;
+    double tru_tof_weight = tru_tof_efficiency > 1e-3 ? 1.0/ tru_tof_efficiency : 0.0;
+
+    out_particle.SetValue( field_out_tru_efficiency, static_cast<float>(tru_efficiency) );
+    out_particle.SetValue( field_out_tru_weight, static_cast<float>(tru_weight) );
+
+    out_particle.SetValue( field_out_tru_tof_efficiency, static_cast<float>(tru_tof_efficiency) );
+    out_particle.SetValue( field_out_tru_tof_weight, static_cast<float>(tru_tof_weight) );
 
     out_particle.SetValue( field_out_tru_phi, float(tru_phi) );
     out_particle.SetValue( field_out_tru_pT, float(tru_pT) );
