@@ -117,6 +117,20 @@ void TracksProcessor::Init() {
 
   module_positions_ = data_header_->GetModulePositions(0);
 
+  auto y_cm = data_header_->GetBeamRapidity();
+  if( fabs( y_cm -  1.17248 ) < 0.05 ){
+    centrality_percentage_ = {0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100 };
+    multiplicity_edges_ = { 249, 155, 129, 108, 90, 74, 60, 49, 39, 24, 14, 7, 2, 1, 0 };
+  }
+  if( fabs( y_cm -   1.05 ) < 0.05 ){
+    centrality_percentage_ = {0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100 };
+    multiplicity_edges_ = { 249, 118, 102, 89, 77, 67, 57, 49, 42, 29, 20, 13, 8, 4, 0 };
+  }
+  if( fabs( y_cm -   0.904183 ) < 0.05 ){
+    centrality_percentage_ = {0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100 };
+    multiplicity_edges_ = { 249, 87, 78, 70, 63, 56, 50, 43, 38, 27, 18, 12, 7, 4, 0 };
+  }
+
   InitFields();
   FHCalQA();
   ReadEfficiency();
